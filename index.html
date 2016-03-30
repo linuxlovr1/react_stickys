@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+   <script src="https://fb.me/react-0.14.7.js"></script>
+   <script src="https://fb.me/react-dom-0.14.7.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.5/js/materialize.min.js"></script>
+   <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.5/css/materialize.min.css" />
+  </head>
+  <body>
+    <div id='content' class='container'>
+    </div>
+    <script type='text/babel'>
+      class List extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { stickys: [], complete: 0, nextID: 0 };
+          this.addSticky = this.addSticky.bind(this);
+          this.stickys = this.stickys.bind(this);
+          this.completeCount = this.completeCount.bind(this);
+          this.refreshCount = this.refreshCount.bind(this);
+          this.deleteSticky = this.deleteSticky.bind(this);
+        }
+
+        completeCount() {
+          let complete = this.state.complete;
+          return(<p>{`${complete}/${this.sate.stickys.length} complete`}</p>)
+        }
+
+        refreshCount(id, checked) {
+          let stickyArray = this.state.stickys;
+          let index = stickyArray.findIndex( x => x.id === id );
+          let sticky = stickyArray.splice(index, 1)[0];
+          sticky.complete = checked;
+          let complete = this.state.complete;
+          if (checked) {
+          stickyArray.push(sticky);
+          complete++;
+          } else {
+            stickyArray.unshift(sticky);
+            complete--;
+          }
+
+          this.setState({complete: complete, stickys: stickyArray});
+        }
+
+        deleteSticky(id) {
+          let stickyArray = this.state.stickys;
+          let index = stickyArray.findIndex( x => x.id === id );
+          let checked = stickyArray[index].complete;
+          let complete = checked ? (this.state.complete - 1) : this.state.complete;
+          stickyArray.splice(index, 1);
+          this.setState({
+            stickys: stickyArray, complete: complete, nextID: this.incID(this.state.nextID)});
+        }
+
+        addSticky(e) {
+          e.preventDefault();
+          let stickys = this.state.stickys;
+          stickys.unshift({
+            name: this.refs.name.value,
+            complete: false,
+            id: this.state.nextID
+          });
+          this.refs.name.value = null;
+          this.setState({ stickys: stickys, nextID: this.incID(this.state.nextID) });
+        }
+
+        incID(id) {
+          return id += 1;
+        }
+
+        stickys() {
+          let stickys = [];
+          this.state.stickys.map( sticky => {
+            stickys.push(
+              <Sticky key={`sticky-${sticky.id}`} {...sticky} deleteMe={this.deleteSticky} refreshMe={this.refreshCount}/>
+            );
+          });
+          return stickys;
+        }
+
+        render() {
+          return(
+            <div className='cneter'>
+              <h1>Sticky Notes</h1>
+              <form onSubmit={this.addSticky}>
+                <input id='name' placeholder='add sticky' type='text' ref='name' /> 
+              </form>
+                {this.completeCount}
+              <hr />
+              <div className='row'>
+                {this.stickys()}
+              </div>
+            </div>
+            );
+          }
+        }
+
+        class Sticky extends React.Component {
+          constructor(props) {
+            super(props);
+            this.state = { checked: this.props.complete, style: {} };
+            this.toggleChecked = this.toggleChecked.bind(this);
+          }
+
+          toggleChecked(){
+            let complete = { checked: this.props.complete, style: {} };          
+            let style = {};
+            if (complete) {
+              style = {
+                textDecoration: 'line-through',
+                color: 'grey'
+              }
+            }
+            this.setState({ checked: complete, style: style });
+            this.props.refreshMe(this.props.id, complete)
+
+          }
+
+          render() {
+            let id = `complete-${this.props.id}`;
+            let color = this.state.checked ? 'green lighten-5' : 'grey lighten-5';
+            return(
+              <div className={`${color} col s12`}>
+                <div className='col m8' style={this.state.style}>
+                  {this.props.name}
+                </div>
+                <div className='col m3'>
+                  <input style={{cursor: 'pointer'}} onChange={this.toggleChecked} type='checkbox' id={id} defaultChecked={this.props.checked} />
+                  <label htmlFor={id}>Complete?</label>
+                </div>
+              <div onClick={() => this.props.deleteMe(this.props.id)} className='col m1'>
+               X 
+                </div>
+              </div>
+            );
+          }
+        }
+      ReactDOM.render(<List />, document.getElementById('content'));
+    </script>
+  </body>
+</html>
